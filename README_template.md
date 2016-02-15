@@ -1,44 +1,3 @@
-# Assignment: "Reproducible Research" Course, Project 1
-
-#### for the course "Getting and Cleaning Data"
-#### of "Data Science Specialization" specialization.
-
-#### By Yiannis Manatos, Feb 15 2016
-
-
-## Abstract
-
-This is my Project 1 submission, containing the following files and folders:
-
-#### A) Initial project template and instruction files/folders:
-
-1. **PA1_template.Rmd**
-
-1. **README_template.md**
-
-1. **activity.zip**
-
-1. **instructions_fig** (folder)
-
-1. **doc** (folder)
-
-#### B) My submission files/folders:
-
-1. **PA1.Rmd** : The R-markdown file, with both the R-code and text used to produce the project report.
-
-1. **README.md** : This readme file.
-
-1. **PA1.md** : Markdown code produced automatically by Knit (with respect to PA1.Rmd file).
-
-1. **PA1.html** : Htm version of my report, produced automatically by Knit (with respect to PA1.Rmd file).
-
-1. **PA1.pdf** : Pdf version of my report, produced automatically by Knit (with respect to PA1.Rmd file).
-
-1. **PA1.docx** : Word-document version of my report, produced automatically by Knit (with respect to PA1.Rmd file).
-
-1. **PA1_files** (folder) : My report supporting files (including the report images), produced automatically by Knit (with respect to PA1.Rmd file).
-
-
 ## Introduction
 
 It is now possible to collect a large amount of data about personal
@@ -207,5 +166,3 @@ https://github.com/rdpeng/RepData_PeerAssessment1
 
 7c376cc5447f11537f8740af8e07d6facc3d9645
 ```
-
-- EOF -

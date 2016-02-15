@@ -1,0 +1,221 @@
+---
+title: 'Reproducible Research: Peer Assessment 1'
+output:
+  html_document:
+    keep_md: yes
+  pdf_document: default
+  word_document: default
+---
+
+by Yiannis Manatos, © Feb. 2016
+
+
+## R libraries initialization
+
+```{r step_init, echo = TRUE}
+# R libraries initialization
+library(scales)
+library(ggplot2)
+library(dplyr)
+
+tz <- Sys.getenv("TZ")
+Sys.setenv(TZ = "GMT")
+```
+
+
+## I) Loading and preprocessing the data
+
+```{r step_I, echo = TRUE}
+# Read data from file
+all_data <- read.csv("activity.csv", header = TRUE)
+str(all_data)
+# Add 'Date' column, from 'date'
+all_data$Date <- as.Date(all_data$date, 
+                         tz = "GMT")
+# Add 'Interval' column, from 'interval'
+all_data$Interval <- as.POSIXct(paste("2016-01-01", sprintf("%04d", all_data$interval)), 
+                            tz = "GMT", 
+                            format = "%Y-%m-%d %H%M")
+
+# Examine all data read
+str(all_data)
+head(all_data)
+summary(all_data)
+```
+
+
+## II) What is mean total number of steps taken per day?
+
+```{r step_II, echo = TRUE}
+# Filter out incomplete cases 
+good_data <- all_data[complete.cases(all_data),]
+str(good_data)
+
+# Calculate the total number of steps taken per day
+steps_by_day <- summarise( group_by(good_data, Date), sum(steps) )
+str(steps_by_day)
+steps_per_day <- steps_by_day[[2]]
+
+# Make a histogram of the total number of steps taken each day
+hist( steps_per_day, 
+      xlab = "# of steps per day", 
+      main = "Total # steps taken each day" )
+
+# Calculate and report the mean and median of the total number of steps taken per day
+mean_steps_per_day <- format(mean(steps_per_day))
+median_steps_per_day <- format(median(steps_per_day))
+```
+
+#### The **mean** of the total number of steps taken per day is: **`r mean_steps_per_day`** .  
+#### The **median** of the total number of steps taken per day is: **`r median_steps_per_day`** .
+
+
+## III) What is the average daily activity pattern?
+
+```{r step_III, echo = TRUE}
+# Calculate the total number of steps taken per 5-minute interval (across all days)
+steps_by_interval <- summarise( group_by(good_data, Interval), sum(steps), mean(steps) )
+str(steps_by_interval)
+names(steps_by_interval) <- c("Interval", "steps_sum", "steps_mean")
+# Examine the interval-grouped data
+str(steps_by_interval)
+head(steps_by_interval)
+summary(steps_by_interval)
+
+# Make a simple time-series plot of the 5-minute interval (x-axis)
+# and the average number of steps taken, averaged across all days (y-axis)
+with(steps_by_interval, plot( Interval, steps_mean, type = "l", 
+                              xlab = "5-min interval",
+                              ylab = "# of steps", 
+                              main = c("Average # steps per 5-min interval", 
+                                       "across all days", 
+                                       "(simple version, see below for a better one)") ))
+
+# Make a better time-series plot, handling intervals scale more accurately
+ggplot(steps_by_interval, 
+       mapping = aes(Interval, steps_mean)) + 
+    geom_line() + 
+    labs( x = "5-min interval", 
+          y = "# of steps", 
+          title = "Average # steps per 5-min interval\nacross all days\n(more accurate intervals version)") +
+    scale_x_datetime(breaks = date_breaks("2 hour"), 
+                     labels = date_format("%H:%M"))
+
+# Calculate and report the 5-min interval, on average across all the days
+# in the dataset, that contains the maximum number of steps
+max_i_mean <- max(steps_by_interval$steps_mean)
+max_i_row <- steps_by_interval[steps_by_interval$steps_mean == max_i_mean, ]
+max_interval <- format(max_i_row[1, 1],
+                       tz = "GMT", 
+                       format = "%H:%M")
+```
+
+#### The **5-min interval** in the dataset containing the **maximum number of steps**, on average across all the days, is: **`r max_interval`** .
+
+
+## IV) Imputing missing values
+
+```{r step_IV_1, echo = TRUE}
+# 1. Calculate and report the total number of missing values in the dataset
+# (i.e. the total number of rows with NAs)
+na_rows <- sum( is.na(all_data$steps) )
+```
+
+#### 1. The **total number of missing values** in the dataset (i.e. the total number of rows with NAs), is: **`r na_rows`** .
+
+```{r step_IV_2, echo = TRUE}
+# 2. Devise a strategy for filling in all of the missing values in the dataset.
+# The strategy does not need to be sophisticated. For example, you could use the mean/median for
+# that day, or the mean for that 5-minute interval, etc na_rows <- sum( is.na(all_data$steps) )
+```
+
+#### 2. The strategy chosen to follow for filling in all of the missing values in the dataset is to use **the rounded mean for the 5-minute interval**.
+
+```{r step_IV_3, echo = TRUE}
+# 3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
+new_data <- all_data[, c("steps", "Date", "Interval")]
+str(new_data)
+# Fill in missing values, using the rounded mean of the 5-minute interval
+n <- nrow(new_data)
+for (i in 1:n)
+    if (is.na(new_data[i, 'steps']))
+    {
+        t <- new_data[i, 'Interval']
+        m <- steps_by_interval[steps_by_interval$Interval == t, 
+                               'steps_mean']
+        new_data[i, 'steps'] <- round(m)
+    }
+# Examine all data read
+str(new_data)
+head(new_data)
+summary(new_data)
+```
+
+```{r step_IV_4, echo = TRUE}
+# 4. Make a histogram of the total number of steps taken each day
+new_steps_by_day <- summarise( group_by(new_data, Date), sum(steps) )
+str(new_steps_by_day)
+new_steps_per_day <- new_steps_by_day[[2]]
+hist( new_steps_per_day, 
+      xlab = "# of steps per day", 
+      main = c("Total # steps taken each day", "(after NAs imputing)") )
+
+# Calculate and report the mean and median total number of steps taken per day.
+# Do these values differ from the estimates from the first part of the assignment? 
+# What is the impact of imputing missing data on the estimates of the total daily number of steps?
+new_mean_steps_per_day <- format(mean(new_steps_per_day))
+new_median_steps_per_day <- format(median(new_steps_per_day))
+```
+
+#### The new **mean** of the total number of steps taken per day is: **`r new_mean_steps_per_day`** (before NAs imputing it was **`r mean_steps_per_day`**) .  
+#### The new **median** of the total number of steps taken per day is: **`r new_median_steps_per_day`** (before NAs imputing it was **`r median_steps_per_day`**) .
+
+
+## V) Are there differences in activity patterns between weekdays and weekends?
+
+```{r step_V, echo = TRUE}
+# 1. Create a new factor variable in the dataset with two levels – “weekday” and “weekend” 
+# indicating whether a given date is a weekday or weekend day.
+#new_data$Weekday <- factor(NA, levels = c("weekday", "weekend"))
+#new_data$Weekday <- weekdays(new_data$Date)
+weekday <- "weekday"
+weekend <- "weekend"
+days <- c(weekend, 
+          weekday, weekday, weekday, weekday, weekday, 
+          weekend)
+new_data$Weekday <- as.factor( days[ as.POSIXlt(new_data$Date)$wday + 1 ] )
+# Examine new_data updated
+str(new_data)
+head(new_data)
+summary(new_data)
+
+# 2. Make a panel plot containing a time series plot (i.e. type = "l") of the 5-min interval (x-axis) 
+# and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).
+# See the README file in the GitHub repository to see an example of what this plot should look like.
+
+# Calculate the total number of steps taken per 5-minute interval (across all days)
+new_steps_by_interval <- summarise( group_by(new_data, Weekday, Interval), sum(steps), mean(steps) )
+str(new_steps_by_interval)
+names(new_steps_by_interval) <- c("Weekday", "Interval", "steps_sum", "steps_mean")
+# Examine the interval-grouped data
+str(new_steps_by_interval)
+head(new_steps_by_interval)
+summary(new_steps_by_interval)
+
+# Make the 2-facet plot
+ggplot(new_steps_by_interval, 
+       mapping = aes(Interval, steps_mean)) + 
+    geom_line() + 
+    facet_grid(Weekday ~ .) +
+    labs( x = "5-min interval", 
+          y = "# of steps", 
+          title = "Average # steps per 5-min interval\nacross all days\n(accurate intervals grouped version)") +
+    scale_x_datetime(breaks = date_breaks("2 hour"), 
+                     labels = date_format("%H:%M"))
+```
+
+
+## -- END-OF-REPORT --
+```{r step_end, echo = TRUE}
+Sys.setenv(TZ = tz)
+```
